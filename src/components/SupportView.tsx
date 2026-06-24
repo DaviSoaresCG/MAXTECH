@@ -61,7 +61,7 @@ export default function SupportView({
   const getCategoryLabel = (cat: TicketCategory) => {
     switch (cat) {
       case 'formatting': return 'Formatação e Instalação de SO';
-      case 'maintenance': return 'Manutenção Física / Limpeza';
+      case 'maintenance': return 'Manutenção Física ou Limpeza';
       case 'remote_support': return 'Suporte Técnico Remoto';
       case 'network': return 'Configuração de Redes e Roteadores';
       default: return cat;
