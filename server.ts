@@ -90,28 +90,7 @@ const INITIAL_PRODUCTS: Product[] = [
     rating: 4.9,
     features: ['Tecnologia Wi-Fi 6 de última geração', '4 antenas externas de 5dBi', 'Controle parental via app', 'Portas Gigabit Ethernet']
   },
-  {
-    id: 'prod-soft-office',
-    name: 'Licença Anual Microsoft 365 Personal (Download Digital)',
-    description: 'Word, Excel, PowerPoint, Outlook e 1TB de armazenamento seguro em nuvem no OneDrive para 1 usuário.',
-    type: 'software',
-    price: 299.00,
-    stock: 99999, // infinite
-    image_url: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=500&auto=format&fit=crop&q=80',
-    rating: 4.7,
-    features: ['Pacote Office Completo', '1TB de OneDrive', 'Atualizações contínuas gratuitas', 'Chave de ativação digital imediata']
-  },
-  {
-    id: 'prod-soft-antivirus',
-    name: 'Antivírus Kaspersky Premium (1 Dispositivo / 1 Ano)',
-    description: 'Proteção completa contra vírus, malware, ransomware e transações seguras na internet para o seu PC ou celular.',
-    type: 'software',
-    price: 99.00,
-    stock: 99999,
-    image_url: 'https://images.unsplash.com/photo-1626379616459-b2ce1d9decbc?w=500&auto=format&fit=crop&q=80',
-    rating: 4.5,
-    features: ['VPN de alta velocidade inclusa', 'Proteção de transações financeiras', 'Filtro de links maliciosos', 'Extremamente leve']
-  },
+
   {
     id: 'prod-srv-format',
     name: 'Serviço de Formatação e Instalação de Sistema Operacional',
@@ -516,6 +495,8 @@ async function startServer() {
     // Map order ID to items
     const finalItems = orderItemsToCreate.map(itm => ({ ...itm, order_id: orderId }));
 
+    const containsService = finalItems.some(itm => itm.product_type === 'service');
+
     const newOrder: Order = {
       id: orderId,
       user_id: currentUser.id,
@@ -527,7 +508,8 @@ async function startServer() {
       created_at: new Date().toISOString(),
       items: finalItems,
       delivery_days: delivery_days !== undefined ? Number(delivery_days) : null,
-      pickup_option: !!pickup_option
+      pickup_option: !!pickup_option,
+      service_status: containsService ? 'pending' : undefined
     };
 
     db.orders.push(newOrder);
@@ -558,21 +540,19 @@ async function startServer() {
       return res.status(400).json({ error: 'Por favor preencha todos os campos do chamado.' });
     }
 
-    if (!['formatting', 'maintenance', 'remote_support', 'network'].includes(category)) {
-      return res.status(400).json({ error: 'Categoria de chamado inválida.' });
-    }
-
     const db = loadDatabase();
 
     // PRD Rule INV-04 Check: Check if user has purchased at least one service type product in a paid order.
     const userOrders = db.orders.filter(o => o.user_id === currentUser.id && (o.status === 'paid' || o.status === 'completed'));
     let boughtService = false;
+    const userBoughtServices: string[] = [];
 
     for (const order of userOrders) {
-      const serviceItem = order.items.find(itm => itm.product_type === 'service');
-      if (serviceItem) {
-        boughtService = true;
-        break;
+      for (const item of order.items) {
+        if (item.product_type === 'service') {
+          boughtService = true;
+          userBoughtServices.push(item.product_name);
+        }
       }
     }
 
@@ -580,6 +560,11 @@ async function startServer() {
       return res.status(403).json({ 
         error: 'Invariante de elegibilidade violada (INV-04): Você só pode abrir um chamado de suporte técnico se possuir no seu histórico de pedidos um serviço contratado (ex: Formatação ou Instalação de Redes).' 
       });
+    }
+
+    const validCategories = ['formatting', 'maintenance', 'remote_support', 'network', ...userBoughtServices];
+    if (!validCategories.includes(category)) {
+      return res.status(400).json({ error: 'Categoria de chamado inválida.' });
     }
 
     const ticketId = `chm-${Math.random().toString(36).substring(2, 11)}`;
@@ -617,11 +602,12 @@ async function startServer() {
       return res.status(404).json({ error: 'Chamado não encontrado.' });
     }
 
-    // Standard users can close their own tickets, but admins can transition any ticket to any status.
+    // Standard users can transition their own tickets to any status to support full interactive simulation,
+    // and admins can transition any ticket to any status.
     const isOwner = ticket.user_id === currentUser.id;
     const isAdmin = currentUser.role === 'admin';
 
-    if (!isAdmin && (!isOwner || status !== 'closed')) {
+    if (!isAdmin && !isOwner) {
       return res.status(403).json({ error: 'Permissão negada para atualizar o status deste chamado.' });
     }
 
@@ -630,6 +616,55 @@ async function startServer() {
     saveDatabase(db);
 
     res.json(ticket);
+  });
+
+  // Admin: Dispatch team for IT service in an order
+  app.patch('/api/orders/:id/dispatch-service', authMiddleware, (req, res) => {
+    const { id } = req.params;
+    const { team_name } = req.body;
+    const currentUser = (req as any).user;
+
+    if (currentUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Acesso restrito ao administrador.' });
+    }
+
+    if (!team_name || team_name.trim() === '') {
+      return res.status(400).json({ error: 'O nome da equipe de TI é obrigatório.' });
+    }
+
+    const db = loadDatabase();
+    const order = db.orders.find(o => o.id === id);
+    if (!order) {
+      return res.status(404).json({ error: 'Pedido não encontrado.' });
+    }
+
+    order.service_status = 'dispatched';
+    order.service_team = team_name;
+    order.service_dispatched_at = new Date().toISOString();
+
+    saveDatabase(db);
+    res.json(order);
+  });
+
+  // Admin: Complete IT service in an order
+  app.patch('/api/orders/:id/complete-service', authMiddleware, (req, res) => {
+    const { id } = req.params;
+    const currentUser = (req as any).user;
+
+    if (currentUser.role !== 'admin') {
+      return res.status(403).json({ error: 'Acesso restrito ao administrador.' });
+    }
+
+    const db = loadDatabase();
+    const order = db.orders.find(o => o.id === id);
+    if (!order) {
+      return res.status(404).json({ error: 'Pedido não encontrado.' });
+    }
+
+    order.service_status = 'completed';
+
+    saveDatabase(db);
+    res.json(order);
   });
 
   // Admin: Restock products

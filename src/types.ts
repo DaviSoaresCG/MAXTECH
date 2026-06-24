@@ -44,9 +44,12 @@ export interface Order {
   items: OrderItem[];
   delivery_days?: number | null;
   pickup_option?: boolean;
+  service_status?: 'pending' | 'dispatched' | 'completed';
+  service_team?: string;
+  service_dispatched_at?: string;
 }
 
-export type TicketCategory = 'formatting' | 'maintenance' | 'remote_support' | 'network';
+export type TicketCategory = string;
 
 export type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
 

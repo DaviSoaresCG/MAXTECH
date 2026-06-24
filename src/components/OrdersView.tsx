@@ -4,7 +4,7 @@ import { Order, OrderItem } from '../types';
 
 interface OrdersViewProps {
   orders: Order[];
-  onOpenSupportForService: (serviceName: string, category: 'formatting' | 'maintenance' | 'remote_support' | 'network') => void;
+  onOpenSupportForService: (serviceName: string, category: string) => void;
   onGoToCatalog: () => void;
 }
 
@@ -189,14 +189,54 @@ export default function OrdersView({ orders, onOpenSupportForService, onGoToCata
 
                           {/* Quick link button to open support ticket for a Service item */}
                           {isService && (
-                            <button
-                              id={`open-support-for-${item.id}`}
-                              onClick={() => onOpenSupportForService(item.product_name, serviceCategory)}
-                              className="text-[10px] font-black text-intelbras-green hover:text-intelbras-green-hover border border-intelbras-green/30 hover:border-intelbras-green bg-white hover:bg-green-50 px-2.5 py-1 rounded-md flex items-center gap-1 transition-all"
-                            >
-                              <LifeBuoy size={11} />
-                              <span>Abrir Chamado de Assistência</span>
-                            </button>
+                            <div className="space-y-1.5 mt-1 w-full max-w-xs sm:max-w-[200px]">
+                              {/* Service Status Badge */}
+                              {(!order.service_status || order.service_status === 'pending') ? (
+                                <div className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-100 rounded px-2 py-1 flex items-center gap-1.5">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                                  <span>Serviço Pendente (Aguardando Escala de Equipe de TI)</span>
+                                </div>
+                              ) : order.service_status === 'dispatched' ? (
+                                <div className="text-[10px] text-blue-800 bg-blue-50 border border-blue-100 rounded p-2 text-left space-y-1">
+                                  <div className="flex items-center gap-1.5 font-extrabold">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
+                                    <span>Equipe de TI Despachada!</span>
+                                  </div>
+                                  <p className="text-[9px] text-slate-600">
+                                    <strong>Equipe:</strong> {order.service_team}
+                                  </p>
+                                  {order.service_dispatched_at && (
+                                    <p className="text-[8px] text-slate-400">
+                                      Despachada: {new Date(order.service_dispatched_at).toLocaleDateString('pt-BR', {
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })}
+                                    </p>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="text-[10px] text-emerald-800 bg-emerald-50 border border-emerald-100 rounded p-2 text-left space-y-1">
+                                  <div className="flex items-center gap-1.5 font-extrabold">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                                    <span>Serviço Finalizado!</span>
+                                  </div>
+                                  <p className="text-[9px] text-slate-600">
+                                    <strong>Realizado por:</strong> {order.service_team}
+                                  </p>
+                                </div>
+                              )}
+
+                              <button
+                                id={`open-support-for-${item.id}`}
+                                onClick={() => onOpenSupportForService(item.product_name, item.product_name)}
+                                className="w-full text-center justify-center text-[10px] font-black text-intelbras-green hover:text-intelbras-green-hover border border-intelbras-green/30 hover:border-intelbras-green bg-white hover:bg-green-50 px-2.5 py-1 rounded-md flex items-center gap-1 transition-all"
+                              >
+                                <LifeBuoy size={11} />
+                                <span>Abrir Chamado de Assistência</span>
+                              </button>
+                            </div>
                           )}
                         </div>
                       </div>

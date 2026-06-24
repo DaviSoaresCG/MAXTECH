@@ -34,7 +34,7 @@ export default function App() {
 
   // Prefilled ticket details (routed from clicking 'Abrir Chamado' inside orders)
   const [prefilledTicketTitle, setPrefilledTicketTitle] = useState('');
-  const [prefilledTicketCategory, setPrefilledTicketCategory] = useState<'formatting' | 'maintenance' | 'remote_support' | 'network'>('formatting');
+  const [prefilledTicketCategory, setPrefilledTicketCategory] = useState<string>('');
 
   // Floating notifications (toast)
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -249,9 +249,9 @@ export default function App() {
       });
   };
 
-  const handleOpenSupportForService = (serviceName: string, category: 'formatting' | 'maintenance' | 'remote_support' | 'network') => {
+  const handleOpenSupportForService = (serviceName: string, category: string) => {
     setPrefilledTicketTitle(`Assistência: ${serviceName}`);
-    setPrefilledTicketCategory(category);
+    setPrefilledTicketCategory(serviceName);
     setActiveView('tickets');
   };
 
@@ -270,6 +270,16 @@ export default function App() {
       .then(res => res.json())
       .then(data => setProducts(data))
       .catch(err => console.error("Error refreshing products:", err));
+  };
+
+  const handleRefreshOrders = () => {
+    const token = localStorage.getItem('maxtech_auth_token') || '';
+    fetch('/api/orders', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => setOrders(data))
+      .catch(err => console.error("Error refreshing orders:", err));
   };
 
   // Check if current user has a paid service in history (Rule INV-04)
@@ -488,6 +498,7 @@ export default function App() {
             <SupportView
               tickets={tickets}
               currentUser={currentUser}
+              orders={orders}
               onOpenAuth={() => setIsAuthModalOpen(true)}
               hasServiceInHistory={hasServiceInHistory}
               onGoToServicesCategory={() => {
@@ -507,7 +518,9 @@ export default function App() {
             <AdminPanel
               products={products}
               currentUser={currentUser}
+              orders={orders}
               onRefreshProducts={handleRefreshProducts}
+              onRefreshOrders={handleRefreshOrders}
               onGoToCatalog={() => setActiveView('catalog')}
             />
           </div>
@@ -551,7 +564,6 @@ export default function App() {
             <ul className="space-y-1.5 text-slate-500 font-medium">
               <li className="hover:text-intelbras-green cursor-pointer transition-colors" onClick={() => { setActiveView('catalog'); setSelectedCategory('hardware'); }}>Fechaduras Digitais</li>
               <li className="hover:text-intelbras-green cursor-pointer transition-colors" onClick={() => { setActiveView('catalog'); setSelectedCategory('hardware'); }}>Câmeras de Segurança</li>
-              <li className="hover:text-intelbras-green cursor-pointer transition-colors" onClick={() => { setActiveView('catalog'); setSelectedCategory('software'); }}>Sistemas e Softwares</li>
               <li className="hover:text-intelbras-green cursor-pointer transition-colors" onClick={() => { setActiveView('catalog'); setSelectedCategory('service'); }}>Assistência Técnica</li>
               <li className="hover:text-intelbras-green cursor-pointer transition-colors" onClick={() => { setActiveView('catalog'); setSelectedCategory('rental'); }}>Locação de Notebooks</li>
             </ul>

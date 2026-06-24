@@ -11,7 +11,7 @@ export interface ShippingEstimation {
  * Calculates dynamic shipping costs and expected delivery days based on Brazilian CEP rules.
  */
 export function estimateShipping(zip: string, items: CartItem[], pickupOption: boolean): ShippingEstimation {
-  // If we only have software or service, it's always free and instant delivery
+  // If we only have service, it's always free and instant delivery
   const hasPhysical = items.some(item => item.product.type === 'hardware' || item.product.type === 'rental');
   
   if (!hasPhysical) {

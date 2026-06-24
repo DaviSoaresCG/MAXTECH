@@ -1,27 +1,29 @@
 import React, { useState } from 'react';
 import { LifeBuoy, AlertCircle, Plus, Send, RefreshCw, CheckCircle2, User, HelpCircle, ArrowRight, ShieldAlert, ToggleLeft, ToggleRight, Settings } from 'lucide-react';
-import { Ticket, TicketCategory, TicketStatus, User as UserType } from '../types';
+import { Ticket, TicketCategory, TicketStatus, User as UserType, Order } from '../types';
 
 interface SupportViewProps {
   tickets: Ticket[];
   currentUser: UserType | null;
+  orders?: Order[];
   onOpenAuth: () => void;
   hasServiceInHistory: boolean;
   onGoToServicesCategory: () => void;
   onReloadTickets: () => void;
   prefilledTitle?: string;
-  prefilledCategory?: 'formatting' | 'maintenance' | 'remote_support' | 'network';
+  prefilledCategory?: string;
 }
 
 export default function SupportView({
   tickets,
   currentUser,
+  orders = [],
   onOpenAuth,
   hasServiceInHistory,
   onGoToServicesCategory,
   onReloadTickets,
   prefilledTitle = '',
-  prefilledCategory = 'formatting'
+  prefilledCategory = ''
 }: SupportViewProps) {
   const [showCreateForm, setShowCreateForm] = useState(prefilledTitle !== '');
   const [title, setTitle] = useState(prefilledTitle);
@@ -30,6 +32,28 @@ export default function SupportView({
   const [submitting, setSubmitting] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [formError, setFormError] = useState('');
+
+  // Extract unique service names purchased by the user
+  const userPaidOrders = orders ? orders.filter(o => o.user_id === currentUser?.id && (o.status === 'paid' || o.status === 'completed')) : [];
+  const purchasedServices = Array.from(new Set(
+    userPaidOrders.flatMap(o => o.items.filter(itm => itm.product_type === 'service').map(itm => itm.product_name))
+  ));
+
+  // Sync state with prefilled values when changed
+  React.useEffect(() => {
+    if (prefilledTitle) {
+      setTitle(prefilledTitle);
+      setShowCreateForm(true);
+    }
+  }, [prefilledTitle]);
+
+  React.useEffect(() => {
+    if (prefilledCategory) {
+      setCategory(prefilledCategory);
+    } else if (purchasedServices.length > 0) {
+      setCategory(purchasedServices[0]);
+    }
+  }, [prefilledCategory, purchasedServices.length]);
   
   // Simulation toggle: lets reviewers pretend to be admin to update ticket statuses
   const [simulationMode, setSimulationMode] = useState(currentUser?.role === 'admin');
@@ -106,9 +130,16 @@ export default function SupportView({
         body: JSON.stringify({ title, description, category })
       });
 
-      const data = await res.json();
+      const text = await res.text();
+      let data: any = {};
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        // Not JSON
+      }
+
       if (!res.ok) {
-        throw new Error(data.error || 'Erro ao abrir chamado.');
+        throw new Error(data.error || `Erro ${res.status}: Não foi possível abrir o chamado.`);
       }
 
       // Success
@@ -137,9 +168,16 @@ export default function SupportView({
         body: JSON.stringify({ status: newStatus })
       });
 
+      const text = await res.text();
+      let data: any = {};
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        // Not JSON
+      }
+
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Erro ao atualizar status');
+        throw new Error(data.error || `Erro ${res.status}: Não foi possível atualizar o status.`);
       }
 
       onReloadTickets();
@@ -240,13 +278,23 @@ export default function SupportView({
                 <select
                   id="ticket-form-category"
                   value={category}
-                  onChange={e => setCategory(e.target.value as TicketCategory)}
+                  onChange={e => setCategory(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:bg-white focus:outline-none focus:ring-2 focus:ring-intelbras-green/20 focus:border-intelbras-green transition-all"
                 >
-                  <option value="formatting">Formatação e Instalação de SO (R$ 120,00)</option>
-                  <option value="maintenance">Manutenção Física / Limpeza (R$ 180,00)</option>
-                  <option value="remote_support">Suporte Técnico Remoto (R$ 249,00)</option>
-                  <option value="network">Configuração de Redes e Roteadores (R$ 350,00)</option>
+                  {purchasedServices.length > 0 ? (
+                    purchasedServices.map((srv) => (
+                      <option key={srv} value={srv}>
+                        {srv}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="formatting">Formatação e Instalação de SO (R$ 120,00)</option>
+                      <option value="maintenance">Manutenção Física / Limpeza (R$ 180,00)</option>
+                      <option value="remote_support">Suporte Técnico Remoto (R$ 249,00)</option>
+                      <option value="network">Configuração de Redes e Roteadores (R$ 350,00)</option>
+                    </>
+                  )}
                 </select>
               </div>
             </div>

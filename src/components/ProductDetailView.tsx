@@ -547,10 +547,10 @@ export default function ProductDetailView({ product, allProducts, onBack, onAddT
                     <div className="space-y-2">
                       <h4 className="font-bold text-slate-800 flex items-center gap-1">
                         <Mail size={14} className="text-intelbras-green" />
-                        <span>Ativação Digital & Suporte</span>
+                        <span>Agendamento & Suporte</span>
                       </h4>
                       <p className="text-slate-500 text-[11px]">
-                        Para softwares e serviços digitais, as credenciais e códigos de ativação são gerados no momento do faturamento e enviados diretamente para o e-mail de registro de sua conta de forma instantânea.
+                        Para serviços técnicos contratados, a confirmação do agendamento é enviada diretamente para o e-mail de registro de sua conta de forma ágil após o faturamento do pedido.
                       </p>
                     </div>
                   </div>

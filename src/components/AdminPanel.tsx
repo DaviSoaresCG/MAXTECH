@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Search, Filter, RefreshCw, AlertCircle, CheckCircle2, ChevronLeft, Package, Hammer, FileCheck, ShieldAlert, Key, Settings } from 'lucide-react';
-import { Product, User } from '../types';
+import { Plus, Edit2, Trash2, Search, Filter, RefreshCw, AlertCircle, CheckCircle2, ChevronLeft, Package, Hammer, FileCheck, ShieldAlert, Key, Settings, Truck, Users, Calendar, Wrench } from 'lucide-react';
+import { Product, User, Order } from '../types';
 
 interface AdminPanelProps {
   products: Product[];
   currentUser: User | null;
+  orders: Order[];
   onRefreshProducts: () => void;
+  onRefreshOrders: () => void;
   onGoToCatalog: () => void;
 }
 
-export default function AdminPanel({ products, currentUser, onRefreshProducts, onGoToCatalog }: AdminPanelProps) {
+export default function AdminPanel({ products, currentUser, orders, onRefreshProducts, onRefreshOrders, onGoToCatalog }: AdminPanelProps) {
   const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   
@@ -31,6 +33,81 @@ export default function AdminPanel({ products, currentUser, onRefreshProducts, o
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Tab State
+  const [activeTab, setActiveTab] = useState<'catalog' | 'services'>('catalog');
+  
+  // Team Dispatch State
+  const [selectedOrderForDispatch, setSelectedOrderForDispatch] = useState<Order | null>(null);
+  const [dispatchTeamName, setDispatchTeamName] = useState('');
+
+  const serviceOrders = Array.isArray(orders) ? orders.filter(order => order.items.some(itm => itm.product_type === 'service')) : [];
+  const pendingServicesCount = serviceOrders.filter(o => o.service_status === 'pending').length;
+
+  const handleDispatchTeam = async (orderId: string) => {
+    if (!dispatchTeamName || dispatchTeamName.trim() === '') {
+      setError('Por favor, informe o nome da equipe ou técnico responsável.');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const token = localStorage.getItem('maxtech_auth_token') || '';
+      const res = await fetch(`/api/orders/${orderId}/dispatch-service`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ team_name: dispatchTeamName })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Erro ao designar equipe de TI.');
+      }
+
+      setSuccess(`Equipe "${dispatchTeamName}" enviada para o local com sucesso!`);
+      setSelectedOrderForDispatch(null);
+      setDispatchTeamName('');
+      onRefreshOrders();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCompleteService = async (orderId: string) => {
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const token = localStorage.getItem('maxtech_auth_token') || '';
+      const res = await fetch(`/api/orders/${orderId}/complete-service`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Erro ao finalizar o serviço.');
+      }
+
+      setSuccess(`Serviço do pedido ${orderId} finalizado com sucesso!`);
+      onRefreshOrders();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!currentUser || currentUser.role !== 'admin') {
     return (
@@ -210,9 +287,15 @@ export default function AdminPanel({ products, currentUser, onRefreshProducts, o
         <div>
           <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
             <Settings className="text-intelbras-green" />
-            <span>Gestão do Catálogo (Administrador)</span>
+            <span>
+              {activeTab === 'catalog' ? 'Gestão do Catálogo (Administrador)' : 'Gestão de Serviços de TI (Administrador)'}
+            </span>
           </h1>
-          <p className="text-sm text-slate-500">Cadastre, edite e remova produtos de hardware, licenças, serviços e locações de TI.</p>
+          <p className="text-sm text-slate-500">
+            {activeTab === 'catalog' 
+              ? 'Cadastre, edite e remova produtos de hardware, licenças, serviços e locações de TI.' 
+              : 'Gerencie os pedidos de serviços de TI contratados e envie equipes especializadas para o local.'}
+          </p>
         </div>
         <div className="flex items-center gap-2 w-full md:w-auto">
           <button
@@ -223,154 +306,436 @@ export default function AdminPanel({ products, currentUser, onRefreshProducts, o
             <ChevronLeft size={14} />
             <span>Ver Catálogo</span>
           </button>
-          <button
-            id="admin-btn-create-item"
-            onClick={handleOpenCreate}
-            className="flex-1 md:flex-none px-4 py-2 bg-intelbras-green hover:bg-intelbras-green-hover text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-1.5"
-          >
-            <Plus size={14} />
-            <span>Novo Item</span>
-          </button>
+          {activeTab === 'catalog' && (
+            <button
+              id="admin-btn-create-item"
+              onClick={handleOpenCreate}
+              className="flex-1 md:flex-none px-4 py-2 bg-intelbras-green hover:bg-intelbras-green-hover text-white text-xs font-bold rounded-lg shadow-sm transition-colors flex items-center justify-center gap-1.5"
+            >
+              <Plus size={14} />
+              <span>Novo Item</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Alert toasts */}
-      {error && (
-        <div className="p-3.5 bg-red-50 border border-red-100 text-red-700 rounded-xl text-xs flex items-center gap-2 animate-in fade-in duration-150">
-          <AlertCircle size={16} className="shrink-0 text-red-500" />
-          <span>{error}</span>
-        </div>
-      )}
-      {success && (
-        <div className="p-3.5 bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-xl text-xs flex items-center gap-2 animate-in fade-in duration-150">
-          <CheckCircle2 size={16} className="shrink-0 text-emerald-500" />
-          <span>{success}</span>
-        </div>
-      )}
-
-      {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-150 shadow-3xs flex flex-col sm:flex-row gap-3">
-        {/* Search */}
-        <div className="flex-1 relative">
-          <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-            <Search size={16} />
-          </span>
-          <input
-            id="admin-search-input"
-            type="text"
-            placeholder="Buscar por nome ou descrição..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-intelbras-green focus:ring-1 focus:ring-intelbras-green"
-          />
-        </div>
-
-        {/* Filter Type */}
-        <div className="sm:w-56 flex gap-2 items-center">
-          <span className="text-slate-400 shrink-0">
-            <Filter size={16} />
-          </span>
-          <select
-            id="admin-filter-type"
-            value={filterType}
-            onChange={e => setFilterType(e.target.value)}
-            className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-white focus:outline-none focus:border-intelbras-green"
-          >
-            <option value="all">Todas as Categorias</option>
-            <option value="hardware">Hardware / Equipamentos</option>
-            <option value="software">Software / Licenças</option>
-            <option value="service">Serviços Técnicos</option>
-            <option value="rental">Aluguel / Locação de TI</option>
-          </select>
-        </div>
+      {/* Tabs */}
+      <div className="flex border-b border-slate-200 gap-4">
+        <button
+          id="admin-tab-btn-catalog"
+          onClick={() => setActiveTab('catalog')}
+          className={`pb-3 text-xs font-bold border-b-2 transition-colors flex items-center gap-1.5 ${
+            activeTab === 'catalog'
+              ? 'border-intelbras-green text-intelbras-green font-black'
+              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+          }`}
+        >
+          <Package size={14} />
+          <span>Catálogo de Produtos</span>
+        </button>
+        <button
+          id="admin-tab-btn-services"
+          onClick={() => {
+            setActiveTab('services');
+            onRefreshOrders();
+          }}
+          className={`pb-3 text-xs font-bold border-b-2 transition-colors flex items-center gap-1.5 relative ${
+            activeTab === 'services'
+              ? 'border-intelbras-green text-intelbras-green font-black'
+              : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+          }`}
+        >
+          <Wrench size={14} />
+          <span>Serviços de TI Pendentes & Equipes</span>
+          {pendingServicesCount > 0 && (
+            <span className="bg-amber-500 text-white font-black text-[9px] px-1.5 py-0.5 rounded-full flex items-center justify-center">
+              {pendingServicesCount}
+            </span>
+          )}
+        </button>
       </div>
 
-      {/* Catalog Items Management Table / Card List */}
-      <div className="bg-white border border-slate-150 rounded-xl overflow-hidden shadow-3xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
-                <th className="p-4 w-16">Imagem</th>
-                <th className="p-4">Nome & ID</th>
-                <th className="p-4">Categoria</th>
-                <th className="p-4 text-right">Preço</th>
-                <th className="p-4 text-center">Estoque</th>
-                <th className="p-4 text-center w-24">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredProducts.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="p-12 text-center text-slate-400 font-medium">
-                    Nenhum item encontrado com os critérios de busca atuais.
-                  </td>
-                </tr>
-              ) : (
-                filteredProducts.map(prod => (
-                  <tr key={prod.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="p-4">
-                      <img
-                        src={prod.image_url}
-                        alt={prod.name}
-                        referrerPolicy="no-referrer"
-                        className="w-10 h-10 object-cover rounded bg-slate-50 border border-slate-100 shrink-0"
-                      />
-                    </td>
-                    <td className="p-4">
-                      <div>
-                        <h4 className="font-bold text-slate-800 leading-snug">{prod.name}</h4>
-                        <p className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-wider font-mono">ID: {prod.id}</p>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${getBadgeClass(prod.type)}`}>
-                        {getTypeText(prod.type)}
-                      </span>
-                    </td>
-                    <td className="p-4 text-right font-semibold text-slate-800">
-                      {prod.type === 'rental' ? (
-                        <span>{prod.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/dia</span>
-                      ) : (
-                        <span>{prod.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
-                      )}
-                    </td>
-                    <td className="p-4 text-center">
-                      {prod.type === 'hardware' ? (
-                        <span className={`font-bold ${prod.stock === 0 ? 'text-red-500' : 'text-slate-600'}`}>
-                          {prod.stock} un
-                        </span>
-                      ) : (
-                        <span className="text-slate-400">Ilimitado</span>
-                      )}
-                    </td>
-                    <td className="p-4 text-center">
-                      <div className="flex justify-center gap-1">
-                        <button
-                          id={`admin-btn-edit-${prod.id}`}
-                          onClick={() => handleOpenEdit(prod)}
-                          title="Editar item"
-                          className="p-1.5 hover:bg-slate-100 rounded text-slate-600 hover:text-intelbras-green transition-colors"
-                        >
-                          <Edit2 size={13} />
-                        </button>
-                        <button
-                          id={`admin-btn-delete-${prod.id}`}
-                          onClick={() => handleDeleteProduct(prod.id)}
-                          title="Excluir item"
-                          className="p-1.5 hover:bg-red-50 rounded text-slate-400 hover:text-red-600 transition-colors"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
+      {activeTab === 'catalog' ? (
+        <>
+          {/* Filter and Search Bar */}
+          <div className="bg-white p-4 rounded-xl border border-slate-150 shadow-3xs flex flex-col sm:flex-row gap-3">
+            {/* Search */}
+            <div className="flex-1 relative">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                <Search size={16} />
+              </span>
+              <input
+                id="admin-search-input"
+                type="text"
+                placeholder="Buscar por nome ou descrição..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-intelbras-green focus:ring-1 focus:ring-intelbras-green"
+              />
+            </div>
+
+            {/* Filter Type */}
+            <div className="sm:w-56 flex gap-2 items-center">
+              <span className="text-slate-400 shrink-0">
+                <Filter size={16} />
+              </span>
+              <select
+                id="admin-filter-type"
+                value={filterType}
+                onChange={e => setFilterType(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-white focus:outline-none focus:border-intelbras-green"
+              >
+                <option value="all">Todas as Categorias</option>
+                <option value="hardware">Hardware / Equipamentos</option>
+                <option value="service">Serviços Técnicos</option>
+                <option value="rental">Aluguel / Locação de TI</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Catalog Items Management Table / Card List */}
+          <div className="bg-white border border-slate-150 rounded-xl overflow-hidden shadow-3xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
+                    <th className="p-4 w-16">Imagem</th>
+                    <th className="p-4">Nome & ID</th>
+                    <th className="p-4">Categoria</th>
+                    <th className="p-4 text-right">Preço</th>
+                    <th className="p-4 text-center">Estoque</th>
+                    <th className="p-4 text-center w-24">Ações</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredProducts.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="p-12 text-center text-slate-400 font-medium">
+                        Nenhum item encontrado com os critérios de busca atuais.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredProducts.map(prod => (
+                      <tr key={prod.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="p-4">
+                          <img
+                            src={prod.image_url}
+                            alt={prod.name}
+                            referrerPolicy="no-referrer"
+                            className="w-10 h-10 object-cover rounded bg-slate-50 border border-slate-100 shrink-0"
+                          />
+                        </td>
+                        <td className="p-4">
+                          <div>
+                            <h4 className="font-bold text-slate-800 leading-snug">{prod.name}</h4>
+                            <p className="text-[10px] text-slate-400 mt-0.5 uppercase tracking-wider font-mono">ID: {prod.id}</p>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${getBadgeClass(prod.type)}`}>
+                            {getTypeText(prod.type)}
+                          </span>
+                        </td>
+                        <td className="p-4 text-right font-semibold text-slate-800">
+                          {prod.type === 'rental' ? (
+                            <span>{prod.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/dia</span>
+                          ) : (
+                            <span>{prod.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                          )}
+                        </td>
+                        <td className="p-4 text-center">
+                          {prod.type === 'hardware' ? (
+                            <span className={`font-bold ${prod.stock === 0 ? 'text-red-500' : 'text-slate-600'}`}>
+                              {prod.stock} un
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">Ilimitado</span>
+                          )}
+                        </td>
+                        <td className="p-4 text-center">
+                          <div className="flex justify-center gap-1">
+                            <button
+                              id={`admin-btn-edit-${prod.id}`}
+                              onClick={() => handleOpenEdit(prod)}
+                              title="Editar item"
+                              className="p-1.5 hover:bg-slate-100 rounded text-slate-600 hover:text-intelbras-green transition-colors"
+                            >
+                              <Edit2 size={13} />
+                            </button>
+                            <button
+                              id={`admin-btn-delete-${prod.id}`}
+                              onClick={() => handleDeleteProduct(prod.id)}
+                              title="Excluir item"
+                              className="p-1.5 hover:bg-red-50 rounded text-slate-400 hover:text-red-600 transition-colors"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div id="admin-services-panel" className="space-y-6">
+          <div className="bg-white p-6 rounded-2xl border border-slate-150 shadow-3xs space-y-4">
+            <h3 className="font-extrabold text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
+              <Truck size={16} className="text-intelbras-green" />
+              <span>Painel de Despacho de Serviços Técnicos de TI</span>
+            </h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Todos os pedidos de serviços de TI (ex: Instalação, Formatação, Manutenção, Cabeamento) adquiridos por clientes são listados aqui. 
+              Eles aparecem inicialmente com o status <strong className="text-amber-600">Pendente</strong> até que uma equipe técnica especializada seja designada e enviada para o local de atendimento do cliente.
+            </p>
+          </div>
+
+          {serviceOrders.length === 0 ? (
+            <div id="no-services-state" className="bg-white rounded-2xl border border-slate-150 p-12 text-center shadow-3xs space-y-3">
+              <Wrench size={40} className="text-slate-300 mx-auto animate-pulse" />
+              <h4 className="font-bold text-slate-800 text-sm">Nenhum Pedido de Serviço Contratado</h4>
+              <p className="text-xs text-slate-500 max-w-md mx-auto">
+                Não há pedidos de serviços de TI no banco de dados atualmente. Quando um cliente comprar um serviço, ele será exibido aqui para despacho.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {serviceOrders.map((order) => {
+                const serviceItems = order.items.filter(itm => itm.product_type === 'service');
+                const isPending = order.service_status === 'pending' || !order.service_status;
+                const isDispatched = order.service_status === 'dispatched';
+                const isCompleted = order.service_status === 'completed';
+
+                let cardBorderClass = 'border-slate-150 bg-white hover:border-slate-250';
+                if (isPending) {
+                  cardBorderClass = 'border-amber-100 bg-amber-50/10 hover:border-amber-200';
+                } else if (isDispatched) {
+                  cardBorderClass = 'border-blue-100 bg-blue-50/10 hover:border-blue-200';
+                } else if (isCompleted) {
+                  cardBorderClass = 'border-emerald-100 bg-emerald-50/10 hover:border-emerald-200';
+                }
+
+                return (
+                  <div 
+                    key={order.id} 
+                    id={`service-order-card-${order.id}`}
+                    className={`bg-white rounded-xl border p-5 transition-all shadow-3xs flex flex-col md:flex-row gap-5 items-start justify-between ${cardBorderClass}`}
+                  >
+                    {/* Left: Info details */}
+                    <div className="space-y-3 flex-1 w-full">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-black text-slate-800 text-xs uppercase tracking-wider font-mono">
+                          PEDIDO: {order.id}
+                        </span>
+                        <span className="text-xs text-slate-500 font-medium ml-2">
+                          • {new Date(order.created_at).toLocaleDateString('pt-BR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                        
+                        {/* Status Badge */}
+                        <div className="ml-auto md:ml-0">
+                          {isPending && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-100 text-amber-800 border border-amber-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                              Pendente (Aguardando Equipe)
+                            </span>
+                          )}
+                          {isDispatched && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-blue-100 text-blue-800 border border-blue-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                              Equipe Enviada ao Local
+                            </span>
+                          )}
+                          {isCompleted && (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                              Serviço Finalizado
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Client Details */}
+                      <div className="bg-slate-50/80 p-3 rounded-lg text-xs space-y-1.5 border border-slate-100">
+                        <div className="flex items-center gap-1.5 text-slate-700">
+                          <Users size={12} className="text-slate-400 shrink-0" />
+                          <span className="font-semibold text-slate-800">Cliente ID:</span>
+                          <span className="font-mono">{order.user_id}</span>
+                        </div>
+                        <div className="flex items-start gap-1.5 text-slate-700">
+                          <Truck size={12} className="text-slate-400 mt-0.5 shrink-0" />
+                          <div className="space-y-0.5">
+                            <span className="font-semibold text-slate-800">Endereço de Atendimento:</span>
+                            <p className="text-slate-600 font-medium">{order.address}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Services list inside this order */}
+                      <div className="space-y-1.5">
+                        <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Serviços Contratados:</h4>
+                        <div className="space-y-1.5">
+                          {serviceItems.map((itm) => (
+                            <div key={itm.id} className="flex items-center gap-2 text-xs bg-slate-50/50 p-2 rounded border border-slate-100">
+                              <img 
+                                src={itm.product_image} 
+                                alt={itm.product_name} 
+                                className="w-7 h-7 object-cover rounded bg-white border border-slate-200 shrink-0"
+                                referrerPolicy="no-referrer"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-slate-800 truncate">{itm.product_name}</p>
+                                <p className="text-[10px] text-slate-400 font-medium">Quantidade: {itm.quantity}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right: Dispatch Action Panel */}
+                    <div className="w-full md:w-64 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-5 shrink-0 self-stretch flex flex-col justify-center">
+                      {isPending ? (
+                        <div className="space-y-3">
+                          <h4 className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                            <Users size={14} className="text-amber-500" />
+                            <span>Designar Equipe Técnica</span>
+                          </h4>
+                          <p className="text-[11px] text-slate-500 leading-normal">
+                            Insira o nome da equipe ou do técnico que será mandado para realizar o serviço de TI no local.
+                          </p>
+
+                          {selectedOrderForDispatch?.id === order.id ? (
+                            <div className="space-y-2 animate-in fade-in duration-150">
+                              <input
+                                id={`dispatch-input-${order.id}`}
+                                type="text"
+                                placeholder="Ex: Equipe de Redes Sul - Carlos & Ana"
+                                value={dispatchTeamName}
+                                onChange={(e) => setDispatchTeamName(e.target.value)}
+                                className="w-full px-2.5 py-1.5 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-intelbras-green"
+                                autoFocus
+                              />
+                              <div className="flex gap-1.5">
+                                <button
+                                  id={`dispatch-submit-${order.id}`}
+                                  onClick={() => handleDispatchTeam(order.id)}
+                                  className="flex-1 py-1.5 bg-intelbras-green hover:bg-intelbras-green-hover text-white text-[11px] font-bold rounded transition-colors"
+                                >
+                                  Confirmar Envio
+                                </button>
+                                <button
+                                  id={`dispatch-cancel-${order.id}`}
+                                  onClick={() => {
+                                    setSelectedOrderForDispatch(null);
+                                    setDispatchTeamName('');
+                                  }}
+                                  className="px-2 py-1.5 border border-slate-200 hover:bg-slate-50 text-slate-500 text-[11px] font-bold rounded transition-colors"
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              id={`dispatch-trigger-${order.id}`}
+                              onClick={() => {
+                                setSelectedOrderForDispatch(order);
+                                setDispatchTeamName('');
+                              }}
+                              className="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-black rounded-lg shadow-xs transition-colors flex items-center justify-center gap-1.5"
+                            >
+                              <Truck size={14} />
+                              <span>Enviar Equipe ao Local</span>
+                            </button>
+                          )}
+                        </div>
+                      ) : isDispatched ? (
+                        <div className="bg-blue-50/60 p-3.5 rounded-lg border border-blue-100 text-xs space-y-3 animate-in fade-in duration-200">
+                          <div className="flex items-center gap-1.5 text-blue-850 font-extrabold">
+                            <CheckCircle2 size={14} className="text-blue-500 animate-pulse" />
+                            <span>Equipe Despachada!</span>
+                          </div>
+                          
+                          <div className="space-y-1 text-slate-600 text-[11px]">
+                            <p>
+                              <strong>Equipe:</strong> {order.service_team}
+                            </p>
+                            {order.service_dispatched_at && (
+                              <p className="text-[10px] text-slate-400">
+                                <strong>Enviada em:</strong>{' '}
+                                {new Date(order.service_dispatched_at).toLocaleDateString('pt-BR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="pt-1.5 border-t border-blue-100/50 flex flex-col gap-2">
+                            <span className="text-[10px] text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded font-bold text-center">
+                              Status: Em Atendimento
+                            </span>
+                            
+                            <button
+                              id={`complete-service-btn-${order.id}`}
+                              onClick={() => handleCompleteService(order.id)}
+                              className="w-full py-1.5 bg-intelbras-green hover:bg-intelbras-green-hover text-white text-[10px] font-black rounded transition-colors flex items-center justify-center gap-1"
+                            >
+                              <CheckCircle2 size={11} />
+                              <span>Finalizar Atendimento</span>
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-emerald-50/60 p-3.5 rounded-lg border border-emerald-100 text-xs space-y-2 animate-in fade-in duration-200">
+                          <div className="flex items-center gap-1.5 text-emerald-800 font-extrabold">
+                            <CheckCircle2 size={14} className="text-emerald-500" />
+                            <span>Serviço Concluído!</span>
+                          </div>
+                          
+                          <div className="space-y-1 text-slate-650 text-[11px]">
+                            <p>
+                              <strong>Realizado por:</strong> {order.service_team}
+                            </p>
+                            {order.service_dispatched_at && (
+                              <p className="text-[10px] text-slate-400">
+                                <strong>Despachado:</strong>{' '}
+                                {new Date(order.service_dispatched_at).toLocaleDateString('pt-BR', {
+                                  day: '2-digit',
+                                  month: '2-digit',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="pt-1.5 border-t border-emerald-150">
+                            <span className="w-full inline-block text-[10px] text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded font-bold text-center">
+                              Status: Finalizado
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-      </div>
+      )}
 
       {/* Create / Edit Form Modal Dialog */}
       {isFormOpen && (
@@ -432,7 +797,6 @@ export default function AdminPanel({ products, currentUser, onRefreshProducts, o
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs bg-white focus:outline-none focus:border-intelbras-green"
                   >
                     <option value="hardware">Hardware / Equipamento</option>
-                    <option value="software">Software / Licença Digital</option>
                     <option value="service">Serviço de Instalação / TI</option>
                     <option value="rental">Locação / Aluguel de TI</option>
                   </select>

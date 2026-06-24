@@ -317,20 +317,7 @@ export default function Header({
             >
               Fechaduras e Hardwares
             </button>
-            <button
-              id="cat-tab-software"
-              onClick={() => {
-                onViewChange('catalog');
-                onCategorySelect('software');
-              }}
-              className={`px-3 py-1 rounded-full text-xs font-semibold tracking-wide transition-all ${
-                selectedCategory === 'software' && activeView === 'catalog'
-                  ? 'bg-intelbras-green text-white'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-              }`}
-            >
-              Licenças de Software
-            </button>
+
             <button
               id="cat-tab-service"
               onClick={() => {

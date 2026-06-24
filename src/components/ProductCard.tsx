@@ -52,11 +52,7 @@ export default function ProductCard({ product, onAddToCart, onProductClick }: Pr
               Serviço de TI
             </span>
           )}
-          {product.type === 'software' && (
-            <span className="bg-teal-600 text-white text-[10px] font-extrabold px-2 py-1 rounded-md uppercase tracking-wider shadow-xs">
-              Licença Digital
-            </span>
-          )}
+
           {product.id.includes('lock-1') || product.id.includes('cam-1') ? (
             <span className="bg-[#007DFE] text-white text-[10px] font-extrabold px-2 py-1 rounded-md uppercase tracking-wider shadow-xs">
               Lançamento
@@ -148,12 +144,6 @@ export default function ProductCard({ product, onAddToCart, onProductClick }: Pr
                 </span>
                 <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
                   Compre com instalação
-                </span>
-              </>
-            ) : product.type === 'software' ? (
-              <>
-                <span className="text-[10px] font-semibold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">
-                  Ativação Digital Imediata
                 </span>
               </>
             ) : product.type === 'service' ? (
