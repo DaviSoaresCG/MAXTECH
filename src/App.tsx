@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import ProductCard from './components/ProductCard';
+import ProductDetailView from './components/ProductDetailView';
 import CartModal from './components/CartModal';
 import AuthModal from './components/AuthModal';
 import OrdersView from './components/OrdersView';
@@ -41,6 +42,9 @@ export default function App() {
 
   // Carousel slide state
   const [carouselIndex, setCarouselIndex] = useState(0);
+
+  // Selected product detail page
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const CAROUSEL_SLIDES = [
     {
@@ -455,6 +459,10 @@ export default function App() {
                       key={prod.id}
                       product={prod}
                       onAddToCart={handleAddToCart}
+                      onProductClick={(clickedProd) => {
+                        setSelectedProduct(clickedProd);
+                        setActiveView('product-detail');
+                      }}
                     />
                   ))}
                 </div>
@@ -501,6 +509,20 @@ export default function App() {
               currentUser={currentUser}
               onRefreshProducts={handleRefreshProducts}
               onGoToCatalog={() => setActiveView('catalog')}
+            />
+          </div>
+        )}
+
+        {/* VIEW 5: DETALHES DO PRODUTO (PÁGINA DE VISUALIZAÇÃO) */}
+        {activeView === 'product-detail' && selectedProduct && (
+          <div className="py-6">
+            <ProductDetailView
+              product={selectedProduct}
+              allProducts={products}
+              onBack={() => setActiveView('catalog')}
+              onAddToCart={handleAddToCart}
+              onOpenCart={() => setIsCartOpen(true)}
+              onProductSelect={(prod) => setSelectedProduct(prod)}
             />
           </div>
         )}

@@ -12,6 +12,7 @@ export interface Product {
   price: number; // For rentals, this is the daily rate (preço por dia)
   stock: number; // Only relevant for hardware
   image_url: string;
+  images?: string[];
   rating: number; // 1.0 to 5.0
   original_price?: number; // For rendering discounts (e.g. 33% OFF)
   features?: string[]; // Bullets of technical specifications

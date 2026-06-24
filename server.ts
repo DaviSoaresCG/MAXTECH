@@ -18,6 +18,11 @@ const INITIAL_PRODUCTS: Product[] = [
     original_price: 401.60,
     stock: 15,
     image_url: 'https://images.unsplash.com/photo-1558002038-1055907df827?w=500&auto=format&fit=crop&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1558002038-1055907df827?w=500&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=500&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=500&auto=format&fit=crop&q=80'
+    ],
     rating: 4.8,
     features: ['Teclado touch luminoso', 'Alimentação por 4 pilhas AA', 'Aviso de pilhas fracas', 'Função não perturbe']
   },
@@ -30,6 +35,10 @@ const INITIAL_PRODUCTS: Product[] = [
     original_price: 529.90,
     stock: 8,
     image_url: 'https://images.unsplash.com/photo-1558002038-1055907df827?w=500&auto=format&fit=crop&q=80',
+    images: [
+      'https://images.unsplash.com/photo-1558002038-1055907df827?w=500&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1513694203232-719a280e022f?w=500&auto=format&fit=crop&q=80'
+    ],
     rating: 4.9,
     features: ['Cadastro de até 100 chaveiros RFID', 'Cadastro de até 4 senhas', 'Sensor de fechamento automático', 'Alarme anti-arrombamento']
   },
@@ -329,7 +338,7 @@ async function startServer() {
     if (currentUser.role !== 'admin') {
       return res.status(403).json({ error: 'Acesso restrito ao administrador.' });
     }
-    const { name, description, type, price, stock, image_url, original_price, features } = req.body;
+    const { name, description, type, price, stock, image_url, images, original_price, features } = req.body;
     if (!name || !description || !type || price === undefined) {
       return res.status(400).json({ error: 'Por favor preencha os campos obrigatórios (nome, descrição, tipo e preço).' });
     }
@@ -343,6 +352,7 @@ async function startServer() {
       price: Number(price),
       stock: type === 'hardware' ? Number(stock || 0) : 99999,
       image_url: image_url || 'https://images.unsplash.com/photo-1558002038-1055907df827?w=500&auto=format&fit=crop&q=80',
+      images: Array.isArray(images) ? images : (typeof images === 'string' ? (images as string).split(',').map(i => i.trim()).filter(Boolean) : []),
       rating: 5.0,
       original_price: original_price ? Number(original_price) : undefined,
       features: Array.isArray(features) ? features : (typeof features === 'string' ? (features as string).split(',').map(f => f.trim()).filter(Boolean) : [])
@@ -360,7 +370,7 @@ async function startServer() {
       return res.status(403).json({ error: 'Acesso restrito ao administrador.' });
     }
     const { id } = req.params;
-    const { name, description, type, price, stock, image_url, original_price, features } = req.body;
+    const { name, description, type, price, stock, image_url, images, original_price, features } = req.body;
 
     const db = loadDatabase();
     const productIndex = db.products.findIndex(p => p.id === id);
@@ -379,6 +389,7 @@ async function startServer() {
       price: price !== undefined ? Number(price) : currentProduct.price,
       stock: newType === 'hardware' ? Number(stock !== undefined ? stock : currentProduct.stock) : 99999,
       image_url: image_url || currentProduct.image_url,
+      images: images !== undefined ? (Array.isArray(images) ? images : (typeof images === 'string' ? (images as string).split(',').map(i => i.trim()).filter(Boolean) : [])) : currentProduct.images,
       original_price: original_price !== undefined ? (original_price ? Number(original_price) : undefined) : currentProduct.original_price,
       features: Array.isArray(features) ? features : (typeof features === 'string' ? (features as string).split(',').map(f => f.trim()).filter(Boolean) : currentProduct.features)
     };

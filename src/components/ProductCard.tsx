@@ -6,9 +6,10 @@ interface ProductCardProps {
   key?: string | number;
   product: Product;
   onAddToCart: (product: Product, days?: number) => void;
+  onProductClick?: (product: Product) => void;
 }
 
-export default function ProductCard({ product, onAddToCart }: ProductCardProps) {
+export default function ProductCard({ product, onAddToCart, onProductClick }: ProductCardProps) {
   const [showDetails, setShowDetails] = useState(false);
   const [rentalDays, setRentalDays] = useState(7); // default rental duration is 7 days
 
@@ -30,7 +31,10 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
       className="bg-white rounded-lg border border-slate-100 hover:border-intelbras-green overflow-hidden shadow-xs hover:shadow-md transition-all duration-300 flex flex-col h-full group"
     >
       {/* Product Image Panel */}
-      <div className="relative pt-[100%] bg-slate-50 overflow-hidden shrink-0">
+      <div 
+        onClick={() => onProductClick?.(product)}
+        className="relative pt-[100%] bg-slate-50 overflow-hidden shrink-0 cursor-pointer"
+      >
         {/* Custom Badges (Left) */}
         <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5">
           {product.type === 'hardware' && product.stock <= 5 && (
@@ -78,7 +82,7 @@ export default function ProductCard({ product, onAddToCart }: ProductCardProps) 
 
       {/* Content Section */}
       <div className="p-4 flex-1 flex flex-col justify-between">
-        <div>
+        <div onClick={() => onProductClick?.(product)} className="cursor-pointer">
           {/* Rating */}
           <div className="flex items-center gap-1 mb-1.5">
             <div className="flex text-amber-400">

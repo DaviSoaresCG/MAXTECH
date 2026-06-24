@@ -23,6 +23,7 @@ export default function AdminPanel({ products, currentUser, onRefreshProducts, o
     price: '',
     stock: '',
     image_url: '',
+    images: '',
     original_price: '',
     features: ''
   });
@@ -57,6 +58,7 @@ export default function AdminPanel({ products, currentUser, onRefreshProducts, o
       price: '',
       stock: '10',
       image_url: '',
+      images: '',
       original_price: '',
       features: ''
     });
@@ -74,6 +76,7 @@ export default function AdminPanel({ products, currentUser, onRefreshProducts, o
       price: prod.price.toString(),
       stock: (prod.stock || 0).toString(),
       image_url: prod.image_url,
+      images: prod.images ? prod.images.join(', ') : '',
       original_price: prod.original_price ? prod.original_price.toString() : '',
       features: prod.features ? prod.features.join(', ') : ''
     });
@@ -138,6 +141,7 @@ export default function AdminPanel({ products, currentUser, onRefreshProducts, o
         price: parseFloat(formData.price),
         stock: formData.type === 'hardware' ? parseInt(formData.stock || '0') : 99999,
         image_url: formData.image_url,
+        images: formData.images.split(',').map(i => i.trim()).filter(Boolean),
         original_price: formData.original_price ? parseFloat(formData.original_price) : undefined,
         features: formData.features.split(',').map(f => f.trim()).filter(Boolean)
       };
@@ -495,6 +499,19 @@ export default function AdminPanel({ products, currentUser, onRefreshProducts, o
                   placeholder="Insira uma URL pública da imagem"
                   value={formData.image_url}
                   onChange={e => setFormData({ ...formData, image_url: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-intelbras-green"
+                />
+              </div>
+
+              {/* Additional Carousel Images */}
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1">Outras Imagens do Carrossel (URLs separadas por vírgula)</label>
+                <input
+                  id="form-item-images"
+                  type="text"
+                  placeholder="Ex: http://url1.com, http://url2.com, http://url3.com"
+                  value={formData.images}
+                  onChange={e => setFormData({ ...formData, images: e.target.value })}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-intelbras-green"
                 />
               </div>
