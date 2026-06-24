@@ -1,0 +1,6 @@
+{
+  "name": "MaxTech Commerce",
+  "description": "Plataforma de comércio eletrônico unificada para venda de hardware, software, serviços e locação de TI da marca MAXTECH.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

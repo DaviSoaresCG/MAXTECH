@@ -1,0 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --color-intelbras-green: #00A335;
+  --color-intelbras-green-hover: #008a2d;
+  --color-intelbras-dark-green: #004831;
+  --color-intelbras-light-bg: #E9F5F0;
+  --color-intelbras-accent: #00E676;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #F4F4F4;
+  color: #333333;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar to look sleek and modern */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Glassmorphism styling helpers */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Custom card animation */
+.intelbras-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.intelbras-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px -5px rgba(0, 163, 53, 0.1), 0 8px 10px -6px rgba(0, 163, 53, 0.1);
+}
