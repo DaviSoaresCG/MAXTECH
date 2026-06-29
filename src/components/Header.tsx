@@ -77,10 +77,7 @@ export default function Header({
             <div className="w-4 h-4 border-2 border-white rotate-45"></div>
           </div>
           <span className="text-2xl font-bold tracking-tighter text-intelbras-dark-green uppercase">
-            intelbras
-          </span>
-          <span className="text-xs font-bold text-slate-400 self-end mb-1 ml-1 uppercase tracking-widest border-l border-slate-200 pl-2">
-            MaxTech
+            MAXTECH
           </span>
         </div>
 

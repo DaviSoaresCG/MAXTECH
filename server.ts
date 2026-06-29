@@ -200,7 +200,7 @@ function saveDatabase(db: Database) {
 // Start building express server
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3002;
 
   app.use(express.json());
 

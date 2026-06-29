@@ -27,6 +27,11 @@
       "original_price": 401.6,
       "stock": 15,
       "image_url": "https://images.unsplash.com/photo-1558002038-1055907df827?w=500&auto=format&fit=crop&q=80",
+      "images": [
+        "https://images.unsplash.com/photo-1558002038-1055907df827?w=500&auto=format&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=500&auto=format&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=500&auto=format&fit=crop&q=80"
+      ],
       "rating": 4.8,
       "features": [
         "Teclado touch luminoso",
@@ -42,8 +47,12 @@
       "type": "hardware",
       "price": 386.92,
       "original_price": 529.9,
-      "stock": 6,
+      "stock": 8,
       "image_url": "https://images.unsplash.com/photo-1558002038-1055907df827?w=500&auto=format&fit=crop&q=80",
+      "images": [
+        "https://images.unsplash.com/photo-1558002038-1055907df827?w=500&auto=format&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=500&auto=format&fit=crop&q=80"
+      ],
       "rating": 4.9,
       "features": [
         "Cadastro de até 100 chaveiros RFID",
@@ -120,7 +129,6 @@
         "Portas Gigabit Ethernet"
       ]
     },
-
     {
       "id": "prod-srv-format",
       "name": "Serviço de Formatação e Instalação de Sistema Operacional",
@@ -186,60 +194,6 @@
       ]
     }
   ],
-  "orders": [
-    {
-      "id": "ped-k7r80vl01",
-      "user_id": "usr-admin-1",
-      "total": 721.456,
-      "shipping_cost": 25,
-      "status": "paid",
-      "address": "60",
-      "payment_method": "pix",
-      "created_at": "2026-06-24T18:05:32.979Z",
-      "items": [
-        {
-          "id": "itm-e11r3osgq",
-          "order_id": "ped-k7r80vl01",
-          "product_id": "prod-lock-2",
-          "product_name": "Fechadura Digital de Sobrepor FR 201 V MAXTECH",
-          "product_type": "hardware",
-          "product_image": "https://images.unsplash.com/photo-1558002038-1055907df827?w=500&auto=format&fit=crop&q=80",
-          "price": 348.228,
-          "quantity": 2,
-          "rental_days": null
-        }
-      ],
-      "delivery_days": 3,
-      "pickup_option": false
-    },
-    {
-      "id": "ped-lz59v83rf",
-      "user_id": "usr-admin-1",
-      "total": 315,
-      "shipping_cost": 0,
-      "status": "paid",
-      "address": "604 Norte",
-      "payment_method": "pix",
-      "created_at": "2026-06-24T18:51:25.948Z",
-      "items": [
-        {
-          "id": "itm-ea36ytnkg",
-          "order_id": "ped-lz59v83rf",
-          "product_id": "prod-srv-net",
-          "product_name": "Instalação e Certificação de Redes Locais e Cabeamento",
-          "product_type": "service",
-          "product_image": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&auto=format&fit=crop&q=80",
-          "price": 315,
-          "quantity": 1,
-          "rental_days": null
-        }
-      ],
-      "delivery_days": 0,
-      "pickup_option": false,
-      "service_status": "completed",
-      "service_team": "Davi e Renato",
-      "service_dispatched_at": "2026-06-24T18:52:09.642Z"
-    }
-  ],
+  "orders": [],
   "tickets": []
 }
